@@ -1,0 +1,8 @@
+openai
+reportlab
+moviepy
+elevenlabs
+rich
+python-dotenv
+tiktoken
+pydantic
