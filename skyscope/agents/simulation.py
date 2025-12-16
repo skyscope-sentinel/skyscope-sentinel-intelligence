@@ -14,8 +14,8 @@ class SimulationAgent:
         """
         Runs the strategic simulation using the specified model.
         """
-        if not self.client:
-            return "Simulation skipped: No OpenRouter API Key provided."
+        if not self.client and not Config.LOCALAI_BASE_URL:
+            return "Simulation skipped: No OpenRouter API Key and no LocalAI URL provided."
 
         # Construct a prompt that enforces the persona and strict constraints
         prompt = f"""
@@ -35,17 +35,39 @@ class SimulationAgent:
         """
         
         try:
-            response = self.client.chat.completions.create(
-                model=Config.MODEL_NAME,
-                messages=[
-                    {"role": "system", "content": "You are a highly advanced strategic AI simulator."},
-                    {"role": "user", "content": prompt}
-                ],
-                extra_headers={
-                    "HTTP-Referer": "https://skyscope.ai", # Required by OpenRouter
-                    "X-Title": "Skyscope",
-                },
-            )
+            if self.client:
+                # Use OpenRouter
+                response = self.client.chat.completions.create(
+                    model=Config.MODEL_NAME,
+                    messages=[
+                        {"role": "system", "content": "You are a highly advanced strategic AI simulator."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    extra_headers={
+                        "HTTP-Referer": "https://skyscope.ai", # Required by OpenRouter
+                        "X-Title": "Skyscope",
+                    },
+                )
+            else:
+                # Use LocalAI
+                # LocalAI is compatible with OpenAI client but requires a different base URL
+                # We can instantitate a temporary client or allow self.client to be LocalAI if configured differently.
+                # Here we create a local client on the fly or used requests if preferred, 
+                # but better to use OpenAI client pointed to localhost.
+                
+                local_client = OpenAI(
+                    base_url=Config.LOCALAI_BASE_URL,
+                    api_key="sk-xxx" # LocalAI doesn't strictly need a real key unless secured
+                )
+                response = local_client.chat.completions.create(
+                    model=Config.LOCAL_MODEL_NAME,
+                    messages=[
+                        {"role": "system", "content": "You are a highly advanced strategic AI simulator."},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+            
+            return response.choices[0].message.content
             return response.choices[0].message.content
         except Exception as e:
             return f"Simulation failed: {str(e)}"

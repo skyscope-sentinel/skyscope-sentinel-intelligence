@@ -40,14 +40,14 @@ class VideoGenerator:
             # Text overlay (Title)
             # Note: TextClip requires ImageMagick. If failing, we fallback to just audio or blank video
             try:
-                txt = TextClip("SKYSCOPE CLASSIFIED BRIEFING", font_size=70, color='white', size=(1280, 720))
-                txt = txt.set_duration(duration)
+                txt = TextClip(text="SKYSCOPE CLASSIFIED BRIEFING", font_size=70, color='white', size=(1280, 720))
+                txt = txt.with_duration(duration)
                 video = concatenate_videoclips([bg, txt], method="compose") # Simplification
             except OSError:
                 # ImageMagick likely missing
                 video = bg
 
-            video = video.set_audio(audio)
+            video = video.with_audio(audio)
             
             output_path = os.path.join(self.output_dir, filename)
             video.write_videofile(output_path, fps=24)
@@ -59,30 +59,54 @@ class VideoGenerator:
 
     def _generate_audio(self, text: str) -> str:
         """
-        Generates audio using ElevenLabs or a mock if key is missing.
+        Generates audio using ElevenLabs, LocalAI, or a mock if all else fails.
         """
         snippet = text[:500] # Limit for demo
         out_path = "temp_audio.mp3"
         
+        # 1. Try ElevenLabs
         if self.el_client:
             try:
-                # Casey Jay Topojani voice or default
-                # We'll use a standard pre-made voice ID for now if specific one isn't known
                 audio = self.el_client.generate(
                     text=snippet,
                     voice="Rachel",
                     model="eleven_multilingual_v2"
                 )
-                with open(out_path, "wb") as f:
-                    for chunk in audio:
-                        f.write(chunk)
+                self._save_audio_stream(audio, out_path)
                 return out_path
             except Exception as e:
-                print(f"ElevenLabs error: {e}")
-                return self._mock_audio(out_path)
-        else:
-            return self._mock_audio(out_path)
-            
+                print(f"ElevenLabs error: {e}. Falling back to LocalAI...")
+        
+        # 2. Try LocalAI TTS
+        if Config.LOCALAI_TTS_URL:
+            try:
+                import requests
+                # OpenAI-compatible TTS endpoint usually /v1/audio/speech but user doc mentions http://localhost:8080/v1/audio/speech
+                # Using the config variable which defaults to /tts but let's align with OpenAI standard if possible or use the user provided example.
+                # User example: http://localhost:8080/v1/audio/speech
+                
+                # We'll use the OpenAI client for LocalAI TTS as it's cleaner
+                from openai import OpenAI
+                local_client = OpenAI(base_url=Config.LOCALAI_BASE_URL, api_key="sk-xxx")
+                
+                response = local_client.audio.speech.create(
+                    model="tts-1",
+                    voice="alloy",
+                    input=snippet
+                )
+                response.stream_to_file(out_path)
+                return out_path
+            except Exception as e:
+                print(f"LocalAI TTS error: {e}. Falling back to mock...")
+
+        # 3. Fallback to Mock
+        return self._mock_audio(out_path)
+
+    def _save_audio_stream(self, audio_stream, path):
+         with open(path, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
+
     def _mock_audio(self, path: str) -> str:
         # Create a silent or dummy audio file if real TTS is not available
         # Using moviepy to generate silence
