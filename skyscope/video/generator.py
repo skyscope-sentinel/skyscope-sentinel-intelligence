@@ -7,24 +7,15 @@ from moviepy.audio.AudioClip import AudioArrayClip
 from elevenlabs.client import ElevenLabs
 from ..utils.config import Config
 
+from .tts_engine import TTSEngine
+
 class VideoGenerator:
     def __init__(self, output_dir="."):
+        self.tts_engine = TTSEngine()
         self.output_dir = output_dir
         self.el_client = None
         if Config.ELEVENLABS_API_KEY:
             self.el_client = ElevenLabs(api_key=Config.ELEVENLABS_API_KEY)
-
-    def generate(self, filename: str, script: str):
-        """
-        Generates a video briefing from the script.
-        1. TTS Generation (ElevenLabs)
-        2. Visual Synthesis (MoviePy TextClips)
-        3. Assembly
-        """
-        audio_path = self._generate_audio(script)
-        if not audio_path:
-            return None
-
         # Create visuals
         # For this simulated environment, we create a simple text-based video
         # In a real heavy-compute env, we would generate images or pick stock footage

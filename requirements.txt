@@ -6,3 +6,6 @@ rich
 python-dotenv
 tiktoken
 pydantic
+requests
+trafilatura
+youtube_transcript_api
