@@ -4,10 +4,23 @@ from ..utils.config import Config
 class SimulationAgent:
     def __init__(self):
         self.client = None
+        
+        # Priority: OpenRouter -> LocalAGI -> LocalAI -> None
         if Config.OPENROUTER_API_KEY:
-            self.client = OpenAI(
+             self.client = OpenAI(
                 base_url="https://openrouter.ai/api/v1",
                 api_key=Config.OPENROUTER_API_KEY,
+            )
+        elif Config.LOCALAGI_BASE_URL: # LocalAGI Fallback/Alternative
+             self.client = OpenAI(
+                base_url=f"{Config.LOCALAGI_BASE_URL}/v1",  # Assuming OpenAI compat endpoint
+                api_key="sk-localagi",
+            )
+             # Update model name for LocalAGI if needed, or rely on its default
+        elif Config.LOCALAI_BASE_URL:
+             self.client = OpenAI(
+                base_url=Config.LOCALAI_BASE_URL,
+                api_key="sk-localai",
             )
 
     def run_simulation(self, query: str, context: list) -> str:

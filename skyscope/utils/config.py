@@ -10,6 +10,12 @@ class Config:
     LOCALAI_BASE_URL = os.getenv("LOCALAI_BASE_URL", "http://localhost:8080/v1")
     LOCALAI_TTS_URL = os.getenv("LOCALAI_TTS_URL", "http://localhost:8080/tts")
     
+    # LocalRecall runs on port 8081 in our docker-compose
+    LOCALRECALL_BASE_URL = os.getenv("LOCALRECALL_BASE_URL", "http://localhost:8081/api")
+    
+    # LocalAGI ran on port 3000
+    LOCALAGI_BASE_URL = os.getenv("LOCALAGI_BASE_URL", "http://localhost:3000")
+
     MCP_CONFIG_PATH = os.getenv("MCP_CONFIG_PATH", "./untitled.txt")
     
     MODEL_NAME = "nvidia/nemotron-nano-12b-v2-vl:free" # Remote
